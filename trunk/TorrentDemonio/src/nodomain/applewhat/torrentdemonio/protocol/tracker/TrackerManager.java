@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Vector;
 
 import nodomain.applewhat.torrentdemonio.metafile.TorrentMetadata;
+import nodomain.applewhat.torrentdemonio.util.ConfigManager;
 
 /**
  * @author Alberto Manzaneque
@@ -48,7 +49,12 @@ public class TrackerManager extends Thread implements TrackerEventProducer {
 						TrackerRequest req = new TrackerRequest(url);
 						req.setCompactAllowed(true);
 						req.setEvent("started");
-						// TODO req.setInfoHash()
+						req.setInfoHash(metadata.getInfoHash());
+						req.setPeerId(ConfigManager.getClientId());
+						req.setPort(7881);
+						req.setUploaded(0);
+						req.setDownloaded(0);
+						req.setLeft(10000000);
 						TrackerResponse response = TrackerResponse.createFromStream(req.make());
 						break;
 					case STARTED:
@@ -62,9 +68,11 @@ public class TrackerManager extends Thread implements TrackerEventProducer {
 
 				} catch(TrackerProtocolException e) {
 					// TODO poner un log
+					e.printStackTrace();
 					end();
 				} catch (IOException e) {
 					// TODO poner un log
+					e.printStackTrace();
 					end();
 				}
 			} else {
@@ -80,8 +88,10 @@ public class TrackerManager extends Thread implements TrackerEventProducer {
 	
 	
 	public void end() {
-		state = State.STOPPING;
-		url.notify();
+		synchronized (url) {
+			state = State.STOPPING;
+			url.notify();	
+		}
 	}
 
 	public void addTrackerEventListener(TrackerEventListener l) {

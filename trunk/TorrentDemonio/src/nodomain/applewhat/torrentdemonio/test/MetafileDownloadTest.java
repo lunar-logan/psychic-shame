@@ -19,6 +19,7 @@ public class MetafileDownloadTest {
 	public static void main(String[] args) throws MalformedURLException, IOException, MalformedMetadataException {
 		System.out.println("downloading...");
 		TorrentMetadata torrent = TorrentMetadata.createFromFile(MetafileDownloader.download(new URL("http://www.mininova.org/get/683454")));
+		System.out.println(torrent.getInfoHash());
 		System.out.println("end...");
 
 	}
