@@ -46,7 +46,7 @@ public class TrackerRequest {
 		StringBuffer req = new StringBuffer(url.toExternalForm());
 		req.append('?');
 		try {
-			addParameter(req, "info_hash", URLEncoder.encode(new String(infoHash,"ISO-8859-1"), "ISO-8859-1"), true);
+			addParameter(req, "info_hash", (infoHash == null ? null : URLEncoder.encode(new String(infoHash,"ISO-8859-1"), "ISO-8859-1")), true);
 			addParameter(req, "peer_id", peerId, true);
 			addParameter(req, "port", port, true);
 			addParameter(req, "uploaded", uploaded, true);
@@ -75,7 +75,7 @@ public class TrackerRequest {
 			str.append(value);
 			str.append('&');
 		} else if (mandatory) {
-			throw new TrackerProtocolException("parameter"+name+"is mandatory");
+			throw new TrackerProtocolException("parameter "+name+" is mandatory");
 		}
 	}
 	

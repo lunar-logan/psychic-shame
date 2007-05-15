@@ -26,6 +26,7 @@ public class TorrentDownloadManager extends Thread implements TrackerEventListen
 		this.metadata = metadata;
 		peers = new Vector<Peer>();
 		tracker = new TrackerManager(metadata);
+		tracker.start();
 	}
 	
 	@Override

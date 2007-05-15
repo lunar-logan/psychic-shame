@@ -5,15 +5,21 @@ package nodomain.applewhat.torrentdemonio.metafile;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream;
+
 import nodomain.applewhat.torrentdemonio.bencoding.BDecoder;
 import nodomain.applewhat.torrentdemonio.bencoding.BDictionary;
 import nodomain.applewhat.torrentdemonio.bencoding.BElement;
+import nodomain.applewhat.torrentdemonio.bencoding.BEncoder;
 import nodomain.applewhat.torrentdemonio.bencoding.BEncodingException;
 import nodomain.applewhat.torrentdemonio.bencoding.BInteger;
 import nodomain.applewhat.torrentdemonio.bencoding.BList;
@@ -47,6 +53,7 @@ public class TorrentMetadata {
 	private List<byte[]> pieceHashes;
 	private String directory;
 	private List<ContainedFile> files;
+	private byte[] infoHash;
 	
 	private TorrentMetadata() {
 		pieceHashes = new ArrayList<byte[]>();
@@ -87,6 +94,15 @@ public class TorrentMetadata {
 			root = (BDictionary) root.get(new BString("info"));
 			if(root == null)
 				throw new MalformedMetadataException("announce not present in .torrent");
+			
+			
+			ByteOutputStream info = new ByteOutputStream(1024);
+			BEncoder encoder = new BEncoder(info);
+			encoder.encode(root);
+			MessageDigest sha1 = MessageDigest.getInstance("SHA1");
+			sha1.update(info.getBytes(), 0, info.getCount());
+			result.infoHash = sha1.digest();
+			
 			
 			bDec = root.get(new BString("piece length"));
 			if(bDec == null)
@@ -153,6 +169,10 @@ public class TorrentMetadata {
 			}
 		} catch (ClassCastException e) {
 			throw new MalformedMetadataException("not valid structure", e);
+		} catch (NoSuchAlgorithmException e) {
+			// TODO escribir un error entendible
+			e.printStackTrace();
+			System.exit(1);
 		}
 		
 		return result;
@@ -201,6 +221,10 @@ public class TorrentMetadata {
 
 	public int getPieceLength() {
 		return pieceLength;
+	}
+	
+	public byte[] getInfoHash() {
+		return infoHash;
 	}
 	
 }

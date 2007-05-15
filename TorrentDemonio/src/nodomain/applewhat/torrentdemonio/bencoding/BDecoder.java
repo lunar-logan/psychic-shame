@@ -57,7 +57,9 @@ public class BDecoder {
 	protected BDictionary decodeDictionary() throws IOException, BEncodingException {
 		BDictionary res = new BDictionary();
 		BElement value = null;
+		
 		BElement key = decodeNext();
+		
 		if(key == null)
 			throw new BEncodingException("Unexpected end of dictionary");
 		
@@ -88,8 +90,9 @@ public class BDecoder {
 	
 	protected BString decodeString(int length) throws IOException, BEncodingException {
 		byte[] res = new byte[length];
-		if(in.read(res) != res.length)
-			throw new BEncodingException("Not enough characters");
+		for(int i=0; i<length; i++) {
+			res[i] = (byte)in.read();
+		}
 //		System.out.println(new BString(res));
 		return new BString(res);
 	}
@@ -119,4 +122,5 @@ public class BDecoder {
 //		System.out.println(res);
 		return res;
 	}
+	
 }
