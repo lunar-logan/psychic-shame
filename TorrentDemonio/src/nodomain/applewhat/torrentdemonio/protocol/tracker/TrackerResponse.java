@@ -25,11 +25,11 @@ import nodomain.applewhat.torrentdemonio.protocol.Peer;
 public class TrackerResponse {
 	
 	private String warningMessage;
-	private int interval;
-	private int minInterval;
+	private long interval;
+	private long minInterval;
 	private String trackerId;
-	private int complete;
-	private int incomplete;
+	private long complete;
+	private long incomplete;
 	private List<Peer> peers;
 	
 	protected TrackerResponse() {
@@ -85,9 +85,9 @@ public class TrackerResponse {
 					BString peerId = (BString) dict.get(new BString("peer id"));
 					Peer peer = null;
 					if(peerId == null) {
-						peer = new Peer(ip.getValue(), port.getValue());
+						peer = new Peer(ip.getValue(), (int)port.getValue());
 					} else {
-						peer = new Peer(ip.getValue(), port.getValue(), peerId.getValue());
+						peer = new Peer(ip.getValue(), (int)port.getValue(), peerId.getValue());
 					}
 					response.peers.add(peer);
 				}
@@ -122,19 +122,19 @@ public class TrackerResponse {
 		return response;
 	}
 
-	public int getComplete() {
+	public long getComplete() {
 		return complete;
 	}
 
-	public int getIncomplete() {
+	public long getIncomplete() {
 		return incomplete;
 	}
 
-	public int getInterval() {
+	public long getInterval() {
 		return interval;
 	}
 
-	public int getMinInterval() {
+	public long getMinInterval() {
 		return minInterval;
 	}
 

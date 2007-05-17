@@ -108,7 +108,7 @@ public class BDecoder {
 		}
 		
 //		System.out.println(Integer.parseInt(buf.toString()));
-		return new BInteger(Integer.parseInt(buf.toString()));
+		return new BInteger(Long.parseLong(buf.toString()));
 	}
 
 	

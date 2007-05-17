@@ -11,7 +11,7 @@ public class ConfigManager {
 	}
 	
 	public static String getClientId() {
-		return "meloinventotrikitri"; // TODO generar un identificador valido
+		return "-AZ2060-"; // TODO generar un identificador valido
 	}
 
 }

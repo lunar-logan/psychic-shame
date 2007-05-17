@@ -33,9 +33,9 @@ public class TorrentMetadata {
 	
 	public static class ContainedFile {
 		private String name;
-		private int length;
+		private long length;
 		private ContainedFile() {}
-		public int getLength() {
+		public long getLength() {
 			return length;
 		}
 		public String getName() {
@@ -49,7 +49,7 @@ public class TorrentMetadata {
 	private String createdBy;
 	private String comment;
 	private boolean multifile;
-	private int pieceLength;
+	private long pieceLength;
 	private List<byte[]> pieceHashes;
 	private String directory;
 	private List<ContainedFile> files;
@@ -100,7 +100,8 @@ public class TorrentMetadata {
 			BEncoder encoder = new BEncoder(info);
 			encoder.encode(root);
 			MessageDigest sha1 = MessageDigest.getInstance("SHA1");
-			sha1.update(info.getBytes(), 0, info.getCount());
+			byte[] data = Arrays.copyOf(info.getBytes(), info.getCount());
+			sha1.update(data);
 			result.infoHash = sha1.digest();
 			
 			
@@ -219,7 +220,7 @@ public class TorrentMetadata {
 	}
 
 
-	public int getPieceLength() {
+	public long getPieceLength() {
 		return pieceLength;
 	}
 	
