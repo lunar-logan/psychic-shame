@@ -9,19 +9,19 @@ package nodomain.applewhat.torrentdemonio.bencoding;
  */
 public class BInteger implements BElement {
 	
-	private int value;
+	private long value;
 	
-	public BInteger(int value) {
+	public BInteger(long value) {
 		this.value = value;
 	}
 	
-	public int getValue() {
+	public long getValue() {
 		return value;
 	}
 	
 	@Override
 	public String toString() {
-		return Integer.toString(value);
+		return Long.toString(value);
 	}
 
 }

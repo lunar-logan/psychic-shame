@@ -33,7 +33,7 @@ public class MetafileDownloader {
 		
 		// FIXME encontrar bien el nombre del fichero que bajamos
 		String filename = conn.getHeaderField("Content-Disposition");
-		if(filename.length() == 0) {
+		if(filename != null && filename.length() == 0) {
 			filename = url.getFile();
 		}
         if (filename == null || filename.length() == 0 || filename.equals("/")) {

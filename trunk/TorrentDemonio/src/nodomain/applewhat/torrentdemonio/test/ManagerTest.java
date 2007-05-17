@@ -16,7 +16,7 @@ public class ManagerTest {
 	 */
 	public static void main(String[] args) throws MalformedURLException, IOException, MalformedMetadataException {
 		System.out.println("start");
-		TorrentMetadata torrent = TorrentMetadata.createFromFile(MetafileDownloader.download(new URL("http://www.mininova.org/get/705909")));
+		TorrentMetadata torrent = TorrentMetadata.createFromFile(MetafileDownloader.download(new URL("http://www.mininova.org/get/708922")));
 		new TorrentDownloadManager(torrent).start();
 		System.out.println("end");
 	}
