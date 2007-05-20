@@ -6,11 +6,12 @@ package nodomain.applewhat.torrentdemonio.protocol.tracker;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.channels.UnsupportedAddressTypeException;
 import java.util.List;
 import java.util.Vector;
+import java.util.logging.Logger;
 
 import nodomain.applewhat.torrentdemonio.metafile.TorrentMetadata;
+import nodomain.applewhat.torrentdemonio.protocol.PeerInfo;
 import nodomain.applewhat.torrentdemonio.util.ConfigManager;
 
 /**
@@ -19,13 +20,16 @@ import nodomain.applewhat.torrentdemonio.util.ConfigManager;
  */
 public class TrackerManager extends Thread implements TrackerEventProducer {
 	
-	public enum State { INITIALIZED, STARTED, STOPPING, STOPPED, COMPLETED }; 
+	public enum State { INITIALIZED, STARTED, STOPPING, STOPPED }; 
 	
 	private TorrentMetadata metadata;
 	private URL url;
 	private List<TrackerEventListener> eventListeners;
 	private State state;
 	private long lastRequest, waitTime;
+	private boolean completed;
+	
+	private static Logger logger = Logger.getLogger(TrackerManager.class.getName());
 	
 	public TrackerManager(TorrentMetadata metadata) throws MalformedURLException {
 		super("TrackerManager");
@@ -37,42 +41,100 @@ public class TrackerManager extends Thread implements TrackerEventProducer {
 		state = State.INITIALIZED;
 		lastRequest = System.currentTimeMillis();
 		waitTime = 0;
+		completed = false;
 	}
 	
 	@Override
 	public void run() {
+		TrackerRequest req = null;
+		TrackerResponse response = null;
+		logger.fine("Launching Tracker manager for torrent "+metadata.getName());
 		while (state != State.STOPPED) {
 			if(System.currentTimeMillis()-lastRequest >= waitTime) {
 				try {
 					switch(state) {
 					case INITIALIZED:
-						TrackerRequest req = new TrackerRequest(url);
+						req = new TrackerRequest(url);
 						req.setCompactAllowed(true);
 						req.setEvent("started");
 						req.setInfoHash(metadata.getInfoHash());
 						req.setPeerId(ConfigManager.getClientId());
-						req.setPort(7881);
+						req.setPort(ConfigManager.getPort());
+						
+						//TODO obtener datos reales
 						req.setUploaded(0);
 						req.setDownloaded(0);
 						req.setLeft(10000000);
-						TrackerResponse response = TrackerResponse.createFromStream(req.make());
+						response = TrackerResponse.createFromStream(req.make());
+						logger.info("Request sent to tracker "+metadata.getAnnounce());
+						logger.fine("Next request in "+response.getInterval()+" seconds");
+						for (PeerInfo peer : response.getPeers()) {
+							for (TrackerEventListener listener : eventListeners) {
+								listener.peerAddedEvent(peer);
+							}
+						}
+						lastRequest = System.currentTimeMillis();
+						waitTime = response.getInterval()*1000;
+						state = State.STARTED;
 						break;
 					case STARTED:
-						break;
-					case COMPLETED:
+						req = new TrackerRequest(url);
+						req.setCompactAllowed(true);
+						req.setInfoHash(metadata.getInfoHash());
+						req.setPeerId(ConfigManager.getClientId());
+						req.setPort(ConfigManager.getPort());
+						if(completed) {
+							req.setEvent("completed");
+							completed = false;
+						}
+						
+						//TODO obtener datos reales
+						req.setUploaded(0);
+						req.setDownloaded(0);
+						req.setLeft(10000000);
+						response = TrackerResponse.createFromStream(req.make());
+						logger.info("Request sent to tracker "+metadata.getAnnounce());
+						logger.fine("Next request in "+response.getInterval()+" seconds");
+						for (PeerInfo peer : response.getPeers()) {
+							for (TrackerEventListener listener : eventListeners) {
+								listener.peerAddedEvent(peer);
+							}
+						}
+						lastRequest = System.currentTimeMillis();
+						waitTime = response.getInterval()*1000;
 						break;
 					case STOPPING:
+						req = new TrackerRequest(url);
+						req.setCompactAllowed(true);
+						req.setEvent("stopped");
+						req.setInfoHash(metadata.getInfoHash());
+						req.setPeerId(ConfigManager.getClientId());
+						req.setPort(ConfigManager.getPort());
+						
+						//TODO obtener datos reales
+						req.setUploaded(0);
+						req.setDownloaded(0);
+						req.setLeft(10000000);
+						response = TrackerResponse.createFromStream(req.make());
+						logger.info("Request sent to tracker "+metadata.getAnnounce());
+						logger.fine("Next request in "+response.getInterval()+" seconds");
+						for (PeerInfo peer : response.getPeers()) {
+							for (TrackerEventListener listener : eventListeners) {
+								listener.peerAddedEvent(peer);
+							}
+						}
+						lastRequest = System.currentTimeMillis();
+						waitTime = response.getInterval()*1000;
+						
 						state = State.STOPPED;
 						break;
 					}
 
 				} catch(TrackerProtocolException e) {
-					// TODO poner un log
-					e.printStackTrace();
+					logger.warning("Error sending request to tracker "+metadata.getAnnounce()+". "+e.getMessage());
 					end();
 				} catch (IOException e) {
-					// TODO poner un log
-					e.printStackTrace();
+					logger.warning("Error sending request to tracker "+metadata.getAnnounce()+". "+e.getMessage());
 					end();
 				}
 			} else {

@@ -6,7 +6,6 @@ package nodomain.applewhat.torrentdemonio.protocol.tracker;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -47,10 +46,7 @@ public class TrackerRequest {
 		StringBuffer req = new StringBuffer(url.toExternalForm());
 		req.append('?');
 		try {
-			
-//			String hexHash = new BigInteger(infoHash).toString(16);
 			addParameter(req, "info_hash", (infoHash == null ? null : URLEncoder.encode(new String(infoHash,"ISO-8859-1"), "ISO-8859-1")), true);
-//			addParameter(req, "info_hash", hexHash, true);
 			addParameter(req, "peer_id", peerId, true);
 			addParameter(req, "port", port, true);
 			addParameter(req, "uploaded", uploaded, true);
