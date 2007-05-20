@@ -1,6 +1,5 @@
 package nodomain.applewhat.torrentdemonio.util;
 
-import java.util.ResourceBundle;
 
 public class ConfigManager {
 	
@@ -11,7 +10,19 @@ public class ConfigManager {
 	}
 	
 	public static String getClientId() {
-		return "-AZ2060-"; // TODO generar un identificador valido
+		return "AZ206123456789012345"; // TODO generar un identificador valido
+	}
+	
+	public static int getPort() {
+		return 6881;
+	}
+	
+	public static String getTempDir() {
+		return "temp";
+	}
+	
+	public static String getIncomingDir() {
+		return "incoming";
 	}
 
 }

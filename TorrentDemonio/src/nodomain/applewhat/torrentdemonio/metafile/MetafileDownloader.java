@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.logging.Logger;
 
 import nodomain.applewhat.torrentdemonio.util.ConfigManager;
 
@@ -18,9 +19,12 @@ import nodomain.applewhat.torrentdemonio.util.ConfigManager;
  */
 public class MetafileDownloader {
 	
+	private static Logger logger = Logger.getLogger(MetafileDownloader.class.getName());
+	
 	private MetafileDownloader() { }
 	
 	public static File download(URL url) throws IOException {
+		logger.info("Downloading torrent file: "+url.toString());
 		if(!url.getProtocol().equals("http"))
 			throw new IOException("Unsupported protocol: "+url.getProtocol());
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -31,8 +35,12 @@ public class MetafileDownloader {
 			throw new IOException(conn.getResponseMessage());
 		}
 		
-		// FIXME encontrar bien el nombre del fichero que bajamos
 		String filename = conn.getHeaderField("Content-Disposition");
+		if(filename != null) {
+			int index1 = filename.indexOf("filename=")+10;
+			int index2 = filename.indexOf('"', index1);
+			filename = index1 < 0 || index2 < 0 ? null: filename.substring(index1, index2);
+		}
 		if(filename != null && filename.length() == 0) {
 			filename = url.getFile();
 		}
@@ -53,6 +61,7 @@ public class MetafileDownloader {
 		out.flush();
 		out.close();
 		in.close();
+		logger.info("Download OK");
 		
 		return save;
 		

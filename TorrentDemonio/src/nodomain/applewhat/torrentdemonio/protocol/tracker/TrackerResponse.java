@@ -5,7 +5,6 @@ package nodomain.applewhat.torrentdemonio.protocol.tracker;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Inet4Address;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,7 +15,7 @@ import nodomain.applewhat.torrentdemonio.bencoding.BEncodingException;
 import nodomain.applewhat.torrentdemonio.bencoding.BInteger;
 import nodomain.applewhat.torrentdemonio.bencoding.BList;
 import nodomain.applewhat.torrentdemonio.bencoding.BString;
-import nodomain.applewhat.torrentdemonio.protocol.Peer;
+import nodomain.applewhat.torrentdemonio.protocol.PeerInfo;
 
 /**
  * @author Alberto Manzaneque
@@ -30,10 +29,10 @@ public class TrackerResponse {
 	private String trackerId;
 	private long complete;
 	private long incomplete;
-	private List<Peer> peers;
+	private List<PeerInfo> peers;
 	
 	protected TrackerResponse() {
-		peers = new ArrayList<Peer>();
+		peers = new ArrayList<PeerInfo>();
 	}
 	
 	public static TrackerResponse createFromStream(InputStream in) throws TrackerProtocolException {
@@ -83,11 +82,11 @@ public class TrackerResponse {
 						throw new TrackerProtocolException("malformed peer list");
 					}
 					BString peerId = (BString) dict.get(new BString("peer id"));
-					Peer peer = null;
+					PeerInfo peer = null;
 					if(peerId == null) {
-						peer = new Peer(ip.getValue(), (int)port.getValue());
+						peer = new PeerInfo(ip.getValue(), (int)port.getValue());
 					} else {
-						peer = new Peer(ip.getValue(), (int)port.getValue(), peerId.getValue());
+						peer = new PeerInfo(ip.getValue(), (int)port.getValue(), peerId.getValue());
 					}
 					response.peers.add(peer);
 				}
@@ -105,7 +104,7 @@ public class TrackerResponse {
 					int firstByte = 0x000000FF & (int)buf[i+4];
 					int secondByte = 0x000000FF & (int)buf[i+5];
 					int port = firstByte << 8 | secondByte & 0x0000FFFF;
-					response.peers.add(new Peer(ip.toString(), port));
+					response.peers.add(new PeerInfo(ip.toString(), port));
 				}
 				
 			} else {
@@ -138,7 +137,7 @@ public class TrackerResponse {
 		return minInterval;
 	}
 
-	public List<Peer> getPeers() {
+	public List<PeerInfo> getPeers() {
 		return peers;
 	}
 

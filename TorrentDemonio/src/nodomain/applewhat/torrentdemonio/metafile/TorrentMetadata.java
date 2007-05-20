@@ -3,9 +3,9 @@
  */
 package nodomain.applewhat.torrentdemonio.metafile;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -13,8 +13,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-
-import com.sun.xml.internal.messaging.saaj.util.ByteOutputStream;
 
 import nodomain.applewhat.torrentdemonio.bencoding.BDecoder;
 import nodomain.applewhat.torrentdemonio.bencoding.BDictionary;
@@ -95,12 +93,12 @@ public class TorrentMetadata {
 			if(root == null)
 				throw new MalformedMetadataException("announce not present in .torrent");
 			
-			
-			ByteOutputStream info = new ByteOutputStream(1024);
+			// obtain the info_hash
+			ByteArrayOutputStream info = new ByteArrayOutputStream(1024);
 			BEncoder encoder = new BEncoder(info);
 			encoder.encode(root);
 			MessageDigest sha1 = MessageDigest.getInstance("SHA1");
-			byte[] data = Arrays.copyOf(info.getBytes(), info.getCount());
+			byte[] data = Arrays.copyOf(info.toByteArray(), info.size());
 			sha1.update(data);
 			result.infoHash = sha1.digest();
 			
@@ -226,6 +224,10 @@ public class TorrentMetadata {
 	
 	public byte[] getInfoHash() {
 		return infoHash;
+	}
+	
+	public String getName() {
+		return directory.length() != 0 ? directory : files.get(0).name;
 	}
 	
 }

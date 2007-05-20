@@ -3,14 +3,13 @@
  */
 package nodomain.applewhat.torrentdemonio.protocol.tracker;
 
-import nodomain.applewhat.torrentdemonio.protocol.Peer;
+import nodomain.applewhat.torrentdemonio.protocol.PeerInfo;
 
 /**
  * @author Alberto Manzaneque
  *
  */
 public interface TrackerEventListener {
-	public void peerAddedEvent(Peer peer);
-	public void peerLostEvent(Peer peer);
+	public void peerAddedEvent(PeerInfo peer);
 
 }
