@@ -4,53 +4,62 @@
 package nodomain.applewhat.torrentdemonio.protocol;
 
 import java.net.MalformedURLException;
+import java.util.List;
+import java.util.Vector;
+import java.util.logging.Logger;
 
 import nodomain.applewhat.torrentdemonio.metafile.TorrentMetadata;
+import nodomain.applewhat.torrentdemonio.protocol.tracker.TrackerEventListener;
 import nodomain.applewhat.torrentdemonio.protocol.tracker.TrackerManager;
-import nodomain.applewhat.torrentdemonio.protocol.wire.WireManager;
-import nodomain.applewhat.torrentdemonio.util.PausableThread;
+import nodomain.applewhat.torrentdemonio.util.TempDirStructure;
 
 /**
  * @author Alberto Manzaneque
  *
  */
-public class TorrentDownloadManager implements PausableThread {
+public class TorrentDownloadManager {
+	
+	private static Logger logger = Logger.getLogger(TorrentDownloadManager.class.getName());
 	
 	private TorrentMetadata metadata;
 	private TrackerManager tracker;
-	private WireManager wire;
 	private DownloadProcess process;
 	private boolean start, stop, destroy;
 	private State state;
+	private List<PeerInfo> remainingPeers;
+	private TempDirStructure files;
 	
 	private enum State { INITIALIZED, STARTED, STOPPED, DESTROYED };
 	
-	public TorrentDownloadManager(TorrentMetadata metadata) throws MalformedURLException {
+	public TorrentDownloadManager(TorrentMetadata metadata, TempDirStructure files) throws MalformedURLException {
 		this.metadata = metadata;
+		this.files = files;
 		tracker = new TrackerManager(metadata);
-		wire = new WireManager(metadata.getName());
-		tracker.addTrackerEventListener(wire);
+		remainingPeers = new Vector<PeerInfo>();
+		tracker.addTrackerEventListener(new PeerAdder());
 		process = new DownloadProcess();
-		new Thread(process).start();
 		start = false;
 		stop = false;
 		destroy = false;
 		state = State.INITIALIZED;
+		new Thread(process).start();
 	}
 	
 	private class DownloadProcess implements Runnable {
 		public void run() {
 			tracker.start();
-			wire.start();
+			// state machine
 			try {
 				while (state != State.DESTROYED) {
 					switch(state) {
 					case INITIALIZED:
+						logger.fine("Torrent "+metadata.getName()+" initialized");
 						synchronized (this) {
 							if(!start) wait();
 							if(start) {
 								state = State.STARTED;
 								start = false;
+								logger.fine("Torrent "+metadata.getName()+" started");
 							}
 						}
 						break;
@@ -60,15 +69,18 @@ public class TorrentDownloadManager implements PausableThread {
 							if(start) {
 								state = State.STARTED;
 								start = false;
+								logger.fine("Torrent "+metadata.getName()+" started");
 							}
 							if (destroy) {
 								state = State.DESTROYED;
 								destroy = false;
+								logger.fine("Torrent "+metadata.getName()+" destroyed");
 							}
 						}
 						break;
 					case STARTED:
-					
+						
+						break;
 					case DESTROYED:
 						break;
 					}
@@ -110,8 +122,15 @@ public class TorrentDownloadManager implements PausableThread {
 		}
 	}
 	
-	private void createFileSystem() {
-		
+
+	
+	private class PeerAdder implements TrackerEventListener {
+		public void peerAddedEvent(PeerInfo peer) {
+			if(!remainingPeers.contains(peer)) {
+				logger.fine("New peer for download"+metadata.getName()+", "+peer);
+				remainingPeers.add(peer);
+			}
+		}
 	}
 
 }

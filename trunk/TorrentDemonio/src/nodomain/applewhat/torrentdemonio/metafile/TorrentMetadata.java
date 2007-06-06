@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -224,6 +225,10 @@ public class TorrentMetadata {
 	
 	public byte[] getInfoHash() {
 		return infoHash;
+	}
+	
+	public String getInfoHashHex() {
+		return new BigInteger(infoHash).toString(16);
 	}
 	
 	public String getName() {
