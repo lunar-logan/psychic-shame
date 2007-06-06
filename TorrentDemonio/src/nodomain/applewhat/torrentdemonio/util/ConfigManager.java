@@ -1,12 +1,13 @@
 package nodomain.applewhat.torrentdemonio.util;
 
 
+
 public class ConfigManager {
 	
 	//private static ResourceBundle configFile = ResourceBundle.getBundle("config");
 	
 	public static String getMetafilesDirectory() {
-		return ".";//configFile.getString("directory.metafiles");
+		return System.getProperty("user.home")+"/prueba";//configFile.getString("directory.metafiles");
 	}
 	
 	public static String getClientId() {
@@ -18,11 +19,11 @@ public class ConfigManager {
 	}
 	
 	public static String getTempDir() {
-		return "temp";
+		return System.getProperty("user.home")+"/prueba/temp";
 	}
 	
 	public static String getIncomingDir() {
-		return "incoming";
+		return System.getProperty("user.home")+"/prueba/incoming";
 	}
 
 }
