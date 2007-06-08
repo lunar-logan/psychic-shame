@@ -26,4 +26,8 @@ public class ConfigManager {
 		return System.getProperty("user.home")+"/prueba/incoming";
 	}
 
+	public static int getMaxConnections() {
+		return 10;
+	}
+	
 }

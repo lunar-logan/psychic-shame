@@ -11,7 +11,7 @@ import java.util.Vector;
 import java.util.logging.Logger;
 
 import nodomain.applewhat.torrentdemonio.metafile.TorrentMetadata;
-import nodomain.applewhat.torrentdemonio.protocol.PeerInfo;
+import nodomain.applewhat.torrentdemonio.protocol.Peer;
 import nodomain.applewhat.torrentdemonio.util.ConfigManager;
 
 /**
@@ -68,7 +68,7 @@ public class TrackerManager extends Thread implements TrackerEventProducer {
 						response = TrackerResponse.createFromStream(req.make());
 						logger.info("Request sent to tracker "+metadata.getAnnounce());
 						logger.fine("Next request in "+response.getInterval()+" seconds");
-						for (PeerInfo peer : response.getPeers()) {
+						for (Peer peer : response.getPeers()) {
 							for (TrackerEventListener listener : eventListeners) {
 								listener.peerAddedEvent(peer);
 							}
@@ -95,7 +95,7 @@ public class TrackerManager extends Thread implements TrackerEventProducer {
 						response = TrackerResponse.createFromStream(req.make());
 						logger.info("Request sent to tracker "+metadata.getAnnounce());
 						logger.fine("Next request in "+response.getInterval()+" seconds");
-						for (PeerInfo peer : response.getPeers()) {
+						for (Peer peer : response.getPeers()) {
 							for (TrackerEventListener listener : eventListeners) {
 								listener.peerAddedEvent(peer);
 							}
@@ -118,7 +118,7 @@ public class TrackerManager extends Thread implements TrackerEventProducer {
 						response = TrackerResponse.createFromStream(req.make());
 						logger.info("Request sent to tracker "+metadata.getAnnounce());
 						logger.fine("Next request in "+response.getInterval()+" seconds");
-						for (PeerInfo peer : response.getPeers()) {
+						for (Peer peer : response.getPeers()) {
 							for (TrackerEventListener listener : eventListeners) {
 								listener.peerAddedEvent(peer);
 							}
