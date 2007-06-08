@@ -15,7 +15,7 @@ import nodomain.applewhat.torrentdemonio.bencoding.BEncodingException;
 import nodomain.applewhat.torrentdemonio.bencoding.BInteger;
 import nodomain.applewhat.torrentdemonio.bencoding.BList;
 import nodomain.applewhat.torrentdemonio.bencoding.BString;
-import nodomain.applewhat.torrentdemonio.protocol.PeerInfo;
+import nodomain.applewhat.torrentdemonio.protocol.Peer;
 
 /**
  * @author Alberto Manzaneque
@@ -29,10 +29,10 @@ public class TrackerResponse {
 	private String trackerId;
 	private long complete;
 	private long incomplete;
-	private List<PeerInfo> peers;
+	private List<Peer> peers;
 	
 	protected TrackerResponse() {
-		peers = new ArrayList<PeerInfo>();
+		peers = new ArrayList<Peer>();
 	}
 	
 	public static TrackerResponse createFromStream(InputStream in) throws TrackerProtocolException {
@@ -82,11 +82,11 @@ public class TrackerResponse {
 						throw new TrackerProtocolException("malformed peer list");
 					}
 					BString peerId = (BString) dict.get(new BString("peer id"));
-					PeerInfo peer = null;
+					Peer peer = null;
 					if(peerId == null) {
-						peer = new PeerInfo(ip.getValue(), (int)port.getValue());
+						peer = new Peer(ip.getValue(), (int)port.getValue());
 					} else {
-						peer = new PeerInfo(ip.getValue(), (int)port.getValue(), peerId.getValue());
+						peer = new Peer(ip.getValue(), (int)port.getValue(), peerId.getValue());
 					}
 					response.peers.add(peer);
 				}
@@ -104,7 +104,7 @@ public class TrackerResponse {
 					int firstByte = 0x000000FF & (int)buf[i+4];
 					int secondByte = 0x000000FF & (int)buf[i+5];
 					int port = firstByte << 8 | secondByte & 0x0000FFFF;
-					response.peers.add(new PeerInfo(ip.toString(), port));
+					response.peers.add(new Peer(ip.toString(), port));
 				}
 				
 			} else {
@@ -137,7 +137,7 @@ public class TrackerResponse {
 		return minInterval;
 	}
 
-	public List<PeerInfo> getPeers() {
+	public List<Peer> getPeers() {
 		return peers;
 	}
 
