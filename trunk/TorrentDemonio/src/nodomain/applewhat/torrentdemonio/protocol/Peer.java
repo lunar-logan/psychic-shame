@@ -6,6 +6,12 @@ package nodomain.applewhat.torrentdemonio.protocol;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
+import java.util.LinkedList;
+import java.util.NoSuchElementException;
+import java.util.Queue;
+
+import nodomain.applewhat.torrentdemonio.protocol.messages.Message;
+import nodomain.applewhat.torrentdemonio.util.ConfigManager;
 
 
 /**
@@ -17,33 +23,43 @@ public class Peer {
 	private String address;
 	private int port;
 	private String id;
+	private byte[] infoHash;
 	
 	private ByteChannel channel;
 	private ByteBuffer readBuffer, writeBuffer;
 	private boolean amInterested, amChoking, peerInterested, peerChoking;
-	private boolean handshakeSent, waitingForMessageCompletion;
+	private boolean handshakeSent, handshakeReceived;
 	
 	private static int READ_BUFFER_SIZE = 100;
 	private static int WRITE_BUFFERE_SIZE = 100;
 	
+	private Queue<Message> pendingWrites;
 	
-	public Peer(String address, int port, String id) {
+	
+	
+	public Peer(String address, int port, byte[] infoHash) {
+		this(address, port);
+		this.infoHash = infoHash;
+	}
+	
+	/** Constructs a Peer without the info_hash. It must be read from the handshake
+	 * or setted by the method setInfoHash
+	 */
+	public Peer(String address, int port) {
 		if(address == null) throw new NullPointerException();
 		this.address = address;
 		this.port = port;
-		this.id = id;
+		this.id = null;
 		this.channel = null;
+		this.infoHash = null;
 		amInterested = false;
 		peerInterested = false;
 		amChoking = true;
 		peerChoking = true;
-		handshakeSent = false;
+		handshakeReceived = handshakeSent = false;
 		readBuffer = ByteBuffer.allocate(READ_BUFFER_SIZE);
 		writeBuffer = ByteBuffer.allocate(WRITE_BUFFERE_SIZE);
-	}
-	
-	public Peer(String address, int port) {
-		this(address, port, null);
+		pendingWrites = new LinkedList<Message>();
 	}
 	
 	@Override
@@ -69,19 +85,30 @@ public class Peer {
 		return port;
 	}
 	
-	public void sendHandshake(byte[] infoHash, String peerId) throws TorrentProtocolException, IOException {
-		if(handshakeSent)
-			throw new TorrentProtocolException("Handshake already sent");
-		
-		if(infoHash.length!=20 && peerId.getBytes().length!=20)
-			throw new IllegalArgumentException("Bad info_hash or peer_id");
+	public void setId(String id) {
+		this.id = id;
+	}
+
+	public void setInfoHash(byte[] infoHash) {
+		this.infoHash = infoHash;
+	}
+
+	public byte[] getInfoHash() {
+		return infoHash;
+	}
+	
+	private void sendHandshake() throws TorrentProtocolException {
+		String myId = ConfigManager.getClientId();
+		if(infoHash.length!=20 && myId.getBytes().length!=20)
+			throw new TorrentProtocolException("Bad info_hash or peer_id");
 		String pstr = "BitTorrent protocol";
 		ByteBuffer buf = ByteBuffer.allocate(68);
 		buf.put((byte)pstr.length());
 		buf.put(pstr.getBytes());
 		buf.put(infoHash);
-		buf.put(peerId.getBytes());
-		channel.write(buf);
+		buf.put(myId.getBytes());
+		Message handshake = Message.createRaw(buf);
+		pendingWrites.offer(handshake);
 		handshakeSent = true;
 	}
 	
@@ -103,10 +130,48 @@ public class Peer {
 		this.channel = chan;
 	}
 	
-	public void perform() {
+	public void performPending() throws IOException {
+		readPendingData();
+		writePendingData();
+		if(infoHash == null) 
 		if(!handshakeSent) {
 //			sendHandshake(infoHash, peerId)
 		}
 		
 	}
+	
+	private void readPendingData() {
+		// TODO
+	}
+	
+	private void writePendingData() throws IOException {
+		try {
+			boolean full = false;
+			while (!full) {
+				Message pending = pendingWrites.element();
+				full = !pending.writeTo(channel);
+				if(!full) pendingWrites.remove();
+			}
+		} catch (NoSuchElementException e) {
+			// nothing pending
+		}
+	}
+	
+	protected void onHandshake(Message msg) {
+		if(infoHash == null) {
+			ByteBuffer data = msg.payload();
+			int length = data.get();
+			for(int i=0; i<length; i++) {
+				data.get();
+			}
+			byte[] ih = new byte[20];
+			data.get(ih);
+			this.infoHash = ih;
+		}
+		handshakeReceived = true;
+		// TODO some error handling?
+	}
+
+
+
 }

@@ -17,12 +17,6 @@ public class ChokeMessage extends Message {
 		super(Type.CHOKE);
 	}
 	
-	@Override
-	public void write(ByteBuffer buf) {
-		buf.putInt(1);
-		buf.put(type.getId());
-	}
-	
 	public static ChokeMessage create() {
 		return instance;
 	}

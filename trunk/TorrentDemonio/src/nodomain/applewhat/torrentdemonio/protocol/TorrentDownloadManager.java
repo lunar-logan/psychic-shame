@@ -200,7 +200,6 @@ public class TorrentDownloadManager {
 							if(channel.isConnectionPending()) {
 								channel.finishConnect();
 								peer.setChannel(channel);
-								peer.sendHandshake(metadata.getInfoHash(), ConfigManager.getClientId());
 								connectedPeers.add(peer);
 								logger.fine("Connected to new peer: "+peer);
 							}

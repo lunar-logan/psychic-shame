@@ -83,10 +83,9 @@ public class TrackerResponse {
 					}
 					BString peerId = (BString) dict.get(new BString("peer id"));
 					Peer peer = null;
+					peer = new Peer(ip.getValue(), (int)port.getValue());
 					if(peerId == null) {
-						peer = new Peer(ip.getValue(), (int)port.getValue());
-					} else {
-						peer = new Peer(ip.getValue(), (int)port.getValue(), peerId.getValue());
+						peer.setId(peerId.getValue());
 					}
 					response.peers.add(peer);
 				}

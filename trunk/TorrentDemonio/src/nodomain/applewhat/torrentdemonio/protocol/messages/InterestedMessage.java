@@ -17,15 +17,6 @@ public class InterestedMessage extends Message {
 		super(Type.INTERESTED);
 	}
 
-	/* (non-Javadoc)
-	 * @see nodomain.applewhat.torrentdemonio.protocol.messages.Message#writeRaw(java.nio.ByteBuffer)
-	 */
-	@Override
-	public void write(ByteBuffer buf) {
-		buf.putInt(1);
-		buf.put(type.getId());
-	}
-	
 	public static InterestedMessage create() {
 		return instance;
 	}
