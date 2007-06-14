@@ -3,9 +3,10 @@
  */
 package nodomain.applewhat.torrentdemonio.protocol.messages;
 
-import java.nio.BufferOverflowException;
+import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
 
 /**
  * @author Alberto Manzaneque Garcia
@@ -25,7 +26,8 @@ public class Message {
 	}
 
 	protected Type type;
-	protected ByteBuffer rawData;
+	protected byte[] rawData;
+	private ByteBuffer buf, header;
 	
 	/**
 	 * 
@@ -38,24 +40,38 @@ public class Message {
 		return type;
 	}
 	
-	
+	public ByteBuffer payload() {
+		if(buf == null)
+			buf = ByteBuffer.wrap(rawData);
+		return buf;
+	}
 	
 	/**
 	 * @param out
-	 * @throws BufferOverflowException
+	 * @return true if the whole message has been written
+	 * @throws IOException 
 	 */
-	public void write(ByteBuffer out) {
-		if(rawData)
-		out.putInt(rawData.length+1);
-		out.put(type.getId());
-		out.put(rawData);
+	public boolean writeTo(ByteChannel out) throws IOException {
+		if(type != Type.RAW) {
+			out.write(header);
+			if(header.hasRemaining()) return false;
+		}
+		out.write(payload());
+		if(payload().hasRemaining()) return false;
+		return true;
+	}
+	
+	public void reset() {
+		if(header != null) header.reset();
+		payload().reset();
 	}
 	
 	public static Message createRaw(ByteBuffer in) {
-		ByteBuffer data = ByteBuffer.allocate(in.limit()-in.position());
-		data.put(in);
 		Message msg = new Message(Type.RAW);
-		msg.rawData = data;
+		msg.rawData = new byte[in.limit()-in.position()];
+		for(int i=0; i<msg.rawData.length; i++) {
+			msg.rawData[i] = in.get();
+		}
 		return msg;
 	}
 	
@@ -78,8 +94,11 @@ public class Message {
 			}
 			Message msg = new Message(tmp);
 			msg.rawData = new byte[length-1];
-			in.get(msg.rawData);
-			msg.type = null;
+			for(int i=0; in.hasRemaining() && i<length-1; i++) {
+				msg.rawData[i] = in.get();
+			}
+			msg.header = ByteBuffer.allocate(5).putInt(length).put(tmp.getId());
+			msg.header.clear();
 			return msg;
 		} catch(BufferUnderflowException e) {
 			throw new MalformedMessageException("Not enough bytes in message");

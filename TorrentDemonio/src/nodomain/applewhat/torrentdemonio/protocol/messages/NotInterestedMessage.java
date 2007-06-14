@@ -16,15 +16,6 @@ public class NotInterestedMessage extends Message {
 	protected NotInterestedMessage() {
 		super(Type.INTERESTED);
 	}
-
-	/* (non-Javadoc)
-	 * @see nodomain.applewhat.torrentdemonio.protocol.messages.Message#writeRaw(java.nio.ByteBuffer)
-	 */
-	@Override
-	public void write(ByteBuffer buf) {
-		buf.putInt(1);
-		buf.put(type.getId());
-	}
 	
 	public static NotInterestedMessage create() {
 		return instance;
