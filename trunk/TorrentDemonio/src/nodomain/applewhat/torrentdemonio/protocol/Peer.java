@@ -5,6 +5,7 @@ package nodomain.applewhat.torrentdemonio.protocol;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.nio.channels.ByteChannel;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
@@ -35,6 +36,9 @@ public class Peer {
 	
 	private Queue<Message> pendingWrites;
 	
+	private ByteBuffer currentRead;
+	private ByteBuffer currentMessageSize;
+	
 	
 	
 	public Peer(String address, int port, byte[] infoHash) {
@@ -60,6 +64,7 @@ public class Peer {
 		readBuffer = ByteBuffer.allocate(READ_BUFFER_SIZE);
 		writeBuffer = ByteBuffer.allocate(WRITE_BUFFERE_SIZE);
 		pendingWrites = new LinkedList<Message>();
+		currentMessageSize = ByteBuffer.allocate(1);
 	}
 	
 	@Override
@@ -140,7 +145,26 @@ public class Peer {
 		
 	}
 	
-	private void readPendingData() {
+	private void readPendingData() throws IOException {
+		int readBytes = -2;
+		while (readBytes != 0 && readBytes != -1) { // no more to read or EOF
+			if(currentRead == null) {
+				readBytes = channel.read(currentMessageSize);
+				if(!currentMessageSize.hasRemaining()) {
+					currentMessageSize.flip();
+					int messageSize = currentMessageSize.getInt();
+					currentRead = ByteBuffer.allocate(messageSize);
+					currentRead.putInt(messageSize);
+				}
+			} else {
+				readBytes = channel.read(currentRead);
+				if(!currentRead.hasRemaining()) {
+					// TODO process the just arrived message
+					currentMessageSize.reset();
+					currentRead = null;
+				}
+			}
+		}
 		// TODO
 	}
 	
