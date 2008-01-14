@@ -48,11 +48,12 @@ public class TorrentMetadata {
 	private String createdBy;
 	private String comment;
 	private boolean multifile;
-	private long pieceLength;
+	private int pieceLength;
 	private List<byte[]> pieceHashes;
 	private String directory;
 	private List<ContainedFile> files;
 	private byte[] infoHash;
+	private long totalLength;
 	
 	private TorrentMetadata() {
 		pieceHashes = new ArrayList<byte[]>();
@@ -107,7 +108,7 @@ public class TorrentMetadata {
 			bDec = root.get(new BString("piece length"));
 			if(bDec == null)
 				throw new MalformedMetadataException("piece length not present in .torrent");
-			result.pieceLength = ((BInteger)bDec).getValue();
+			result.pieceLength = (int)(((BInteger)bDec).getValue());
 			
 			bDec = root.get(new BString("pieces"));
 			if(bDec == null)
@@ -167,6 +168,12 @@ public class TorrentMetadata {
 			} else {
 				throw new MalformedMetadataException("no file found in .torrent");
 			}
+			
+			result.totalLength = 0;
+			for (ContainedFile tmpFile : result.files) {
+				result.totalLength += tmpFile.getLength();
+			}
+			
 		} catch (ClassCastException e) {
 			throw new MalformedMetadataException("not valid structure", e);
 		} catch (NoSuchAlgorithmException e) {
@@ -219,7 +226,7 @@ public class TorrentMetadata {
 	}
 
 
-	public long getPieceLength() {
+	public int getPieceLength() {
 		return pieceLength;
 	}
 	
@@ -233,6 +240,10 @@ public class TorrentMetadata {
 	
 	public String getName() {
 		return directory.length() != 0 ? directory : files.get(0).name;
+	}
+	
+	public long getTotalLength() {
+		return totalLength;
 	}
 	
 }
