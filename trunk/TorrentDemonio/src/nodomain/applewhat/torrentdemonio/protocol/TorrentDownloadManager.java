@@ -3,9 +3,10 @@
  */
 package nodomain.applewhat.torrentdemonio.protocol;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.MalformedURLException;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -15,17 +16,19 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.logging.Logger;
 
+import nodomain.applewhat.torrentdemonio.metafile.MalformedMetadataException;
 import nodomain.applewhat.torrentdemonio.metafile.TorrentMetadata;
+import nodomain.applewhat.torrentdemonio.protocol.messages.PendingHandshake;
 import nodomain.applewhat.torrentdemonio.protocol.tracker.TrackerEventListener;
 import nodomain.applewhat.torrentdemonio.protocol.tracker.TrackerManager;
+import nodomain.applewhat.torrentdemonio.storage.TorrentStorage;
 import nodomain.applewhat.torrentdemonio.util.ConfigManager;
-import nodomain.applewhat.torrentdemonio.util.TempDirStructure;
 
 /**
  * @author Alberto Manzaneque
  *
  */
-public class TorrentDownloadManager {
+public class TorrentDownloadManager implements IncomingConnectionListener {
 	
 	private static Logger logger = Logger.getLogger(TorrentDownloadManager.class.getName());
 	
@@ -34,18 +37,19 @@ public class TorrentDownloadManager {
 	private DownloadProcess process;
 	private boolean start, stop, destroy;
 	private State state;
-	private List<Peer> remainingPeers, connectedPeers;
-	private TempDirStructure fileNames;
+	private List<Peer> remainingPeers;
+	private List<PeerConnection> connectedPeers;
 	private Selector sockSelector;
+	private TorrentStorage storage;
 	
 	private enum State { INITIALIZED, STARTED, STOPPED, DESTROYED };
 	
-	public TorrentDownloadManager(TorrentMetadata metadata, TempDirStructure files) throws MalformedURLException {
-		this.metadata = metadata;
-		this.fileNames = files;
+	public TorrentDownloadManager(File torrentFile) throws IOException, MalformedMetadataException {
+		metadata = TorrentMetadata.createFromFile(torrentFile);
+		storage = new TorrentStorage(metadata, torrentFile);
 		tracker = new TrackerManager(metadata);
 		remainingPeers = new Vector<Peer>();
-		connectedPeers = new Vector<Peer>();
+		connectedPeers = new Vector<PeerConnection>();
 		tracker.addTrackerEventListener(new PeerAdder());
 		process = new DownloadProcess();
 		start = false;
@@ -97,7 +101,6 @@ public class TorrentDownloadManager {
 						processSocketEvents();
 						if(stop || destroy) break;
 						findNewActionsToDo();
-						
 						break;
 					case DESTROYED:
 						break;
@@ -124,12 +127,8 @@ public class TorrentDownloadManager {
 	}
 	
 	protected void doStop() {
-		for (Peer connectedPeer : connectedPeers) {
-			try {
-				connectedPeer.disconnect();
-			} catch (IOException e) {
-				logger.warning("Error when disconnecting from peer "+connectedPeer+". "+e.getMessage());
-			}
+		for (PeerConnection connectedPeer : connectedPeers) {
+			connectedPeer.kill();
 		}
 		try {
 			sockSelector.close();
@@ -169,17 +168,21 @@ public class TorrentDownloadManager {
 	}
 	
 	private void makeNewConnections() {
-		while(connectedPeers.size() < ConfigManager.getMaxConnections() && remainingPeers.size()>0) {
-			Peer peer = null;
-			peer = remainingPeers.get(0);
-			remainingPeers.remove(peer);
-			try {
-				SocketChannel sock = SocketChannel.open();
-				sock.configureBlocking(false);
-				sock.connect(new InetSocketAddress(peer.getAddress(), peer.getPort()));
-				sock.register(sockSelector, SelectionKey.OP_CONNECT, peer);
-			} catch (IOException e) {
-				logger.fine("Could not connect to peer "+peer);
+		synchronized(remainingPeers) {
+			// FIXME cuando intentamos conectar a un peer se queda en el limbo, ni connected ni remaining, por eso falla la comprobacion de maximo
+			while(connectedPeers.size() < ConfigManager.getMaxConnections() && remainingPeers.size()>0) {
+				Peer peer = null;
+				peer = remainingPeers.get(0);
+				logger.fine("Trying to connect to peer "+peer);
+				remainingPeers.remove(peer);
+				try {
+					SocketChannel sock = SocketChannel.open();
+					sock.configureBlocking(false);
+					sock.connect(new InetSocketAddress(peer.getAddress(), peer.getPort()));
+					sock.register(sockSelector, SelectionKey.OP_CONNECT, peer);
+				} catch (IOException e) {
+					logger.fine("Could not connect to peer "+peer);
+				}
 			}
 		}
 	}
@@ -199,17 +202,52 @@ public class TorrentDownloadManager {
 						try {
 							if(channel.isConnectionPending()) {
 								channel.finishConnect();
-								peer.setChannel(channel);
-								connectedPeers.add(peer);
+								PeerConnection conn = new PeerConnection(peer, channel, metadata.getInfoHash());
+								conn.enqueue(new PendingHandshake(metadata.getInfoHash(), ConfigManager.getClientId().getBytes()));
+								connectedPeers.add(conn);
+								key.attach(conn);
+								key.interestOps(SelectionKey.OP_READ | SelectionKey.OP_WRITE);
 								logger.fine("Connected to new peer: "+peer);
 							}
 						} catch (Exception e) {
 							logger.fine("Can not connect to peer "+peer+". "+e.getMessage());
+							key.attach(null);
+							key.cancel();
 						}
-					} else if (key.isWritable()) {
-						
-					} else if (key.isReadable()) {
-						
+					} 
+					if (key.isValid() && key.isWritable()) {
+						PeerConnection conn = (PeerConnection) key.attachment();
+						try {
+							if(!conn.doWrite()) {
+								// nothing more to write -> unset the write interest
+								key.interestOps(key.interestOps() & ~SelectionKey.OP_WRITE);
+							}
+						} catch (Exception e) {
+							logger.fine("Error sending message to "+conn.getPeer()+". Closing connection: "+e.getMessage());
+							conn.kill();
+							key.attach(null);
+							key.cancel();
+							connectedPeers.remove(conn);
+						}
+					} 
+					if (key.isValid() && key.isReadable()) {
+						// TODO
+						PeerConnection conn = (PeerConnection) key.attachment();
+						try {
+							if(!conn.getChannel().isOpen()) {
+								logger.fine("Socket closed. Connection with "+conn.getPeer()+" dropped");
+								conn.kill();
+								key.cancel();
+							} else {
+								conn.doRead();
+							}
+						} catch (Exception e) {
+							logger.fine("Error reading from socket ("+e.getMessage()+"). Closing connection with "+conn.getPeer());
+							conn.kill();
+							key.attach(null);
+							key.cancel();
+							connectedPeers.remove(conn);
+						}
 					}
 				}
 			}
@@ -222,15 +260,42 @@ public class TorrentDownloadManager {
 	private void findNewActionsToDo() {
 		// TODO
 	}
-	
-
-	
+		
 	private class PeerAdder implements TrackerEventListener {
 		public void peerAddedEvent(Peer peer) {
 			synchronized(remainingPeers) {
-				if(!remainingPeers.contains(peer)) {
-					logger.fine("New peer for download"+metadata.getName()+", "+peer);
+				// FIXME connectedpeers no contiene peers sino peerconnections
+				if(!remainingPeers.contains(peer) && !connectedPeers.contains(peer)) {
+					logger.fine("New peer for download "+metadata.getName()+", "+peer);
 					remainingPeers.add(peer);
+				}
+			}
+		}
+	}
+
+	@Override
+	public byte[] getInfoHash() {
+		return metadata.getInfoHash();
+	}
+
+	@Override
+	public void incomingConnectionReceived(PeerConnection peer) {
+		synchronized (remainingPeers) {
+			if(!connectedPeers.contains(peer)) {
+				if(remainingPeers.contains(peer)) {
+					remainingPeers.remove(peer);
+				}
+				connectedPeers.add(peer);
+				peer.enqueue(new PendingHandshake(metadata.getInfoHash(),ConfigManager.getClientId().getBytes()));
+				logger.fine("New peer (incoming connection) for download "+metadata.getName()+", "+peer.getPeer());
+				// FIXME
+				try {
+					peer.getChannel().configureBlocking(false);
+					peer.getChannel().register(sockSelector, SelectionKey.OP_READ | SelectionKey.OP_WRITE, peer);
+				} catch (ClosedChannelException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 			}
 		}

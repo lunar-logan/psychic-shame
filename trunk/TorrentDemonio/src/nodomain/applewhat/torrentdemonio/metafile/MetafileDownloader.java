@@ -61,7 +61,7 @@ public class MetafileDownloader {
 		out.flush();
 		out.close();
 		in.close();
-		logger.info("Download OK");
+		logger.info("Download OK. Filename: "+filename);
 		
 		return save;
 		

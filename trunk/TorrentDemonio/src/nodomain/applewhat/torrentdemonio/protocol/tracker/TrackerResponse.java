@@ -85,7 +85,7 @@ public class TrackerResponse {
 					Peer peer = null;
 					peer = new Peer(ip.getValue(), (int)port.getValue());
 					if(peerId == null) {
-						peer.setId(peerId.getValue());
+						peer.setId(peerId.getValue().getBytes());
 					}
 					response.peers.add(peer);
 				}

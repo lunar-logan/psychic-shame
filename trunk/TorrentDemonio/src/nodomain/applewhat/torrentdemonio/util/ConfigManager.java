@@ -11,11 +11,11 @@ public class ConfigManager {
 	}
 	
 	public static String getClientId() {
-		return "AZ206123456789012345"; // TODO generar un identificador valido
+		return "TD206123456789012345"; // TODO generar un identificador valido
 	}
 	
 	public static int getPort() {
-		return 6881;
+		return 5881;
 	}
 	
 	public static String getTempDir() {
@@ -27,7 +27,7 @@ public class ConfigManager {
 	}
 
 	public static int getMaxConnections() {
-		return 10;
+		return 3;
 	}
 	
 }

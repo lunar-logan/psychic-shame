@@ -96,7 +96,7 @@ public class TrackerManager extends Thread implements TrackerEventProducer {
 						logger.info("Request sent to tracker "+metadata.getAnnounce());
 						logger.fine("Next request in "+response.getInterval()+" seconds");
 						for (Peer peer : response.getPeers()) {
-							peer.setInfoHash(metadata.getInfoHash());
+//							peer.setInfoHash(metadata.getInfoHash());
 							for (TrackerEventListener listener : eventListeners) {
 								listener.peerAddedEvent(peer);
 							}
